@@ -1,0 +1,24 @@
+department-site/
+├── backend/                  # এখানে থাকবে Django প্রজেক্ট (ভবিষ্যতের জন্য)
+│   └── ...
+├── frontend/                 # এখানে থাকবে React ফ্রন্টএন্ড কোড
+│   ├── public/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── Header.jsx
+│   │   │   ├── Footer.jsx
+│   │   │   ├── TeacherCard.jsx
+│   │   │   ├── StudentCard.jsx
+│   │   │   └── BookCard.jsx
+│   │   ├── pages/
+│   │   │   ├── Home.jsx
+│   │   │   ├── Teachers.jsx
+│   │   │   ├── Students.jsx
+│   │   │   └── Library.jsx
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   ├── tailwind.config.js
+│   ├── index.html
+│   └── package.json
+├── README.md
+└── .gitignore
