@@ -17,11 +17,8 @@ DEBUG = 'RENDER' not in os.environ
 
 import os
 
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    'department-website-nwdy.onrender.com'
-]
+ALLOWED_HOSTS = ['.onrender.com', 'localhost', '127.0.0.1']
+
 
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
