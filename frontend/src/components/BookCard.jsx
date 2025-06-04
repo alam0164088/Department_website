@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import { api } from '../config/api';
 import API_URL from '../config/api';
 
 function BookCard({ book }) {
@@ -7,7 +7,6 @@ function BookCard({ book }) {
   const [error, setError] = useState(null);
   const [imageError, setImageError] = useState(false);
 
-  // Image fallback logic
   const getImageUrl = () => {
     if (imageError) {
       return 'https://via.placeholder.com/150?text=No+Image';
@@ -20,7 +19,6 @@ function BookCard({ book }) {
     return 'https://via.placeholder.com/150?text=No+Image';
   };
 
-  // PDF fallback logic
   const pdfLink = book.pdf_file
     ? `${API_URL}${book.pdf_file}`
     : book.pdf_file_url || '#';
@@ -35,24 +33,15 @@ function BookCard({ book }) {
     setError(null);
 
     try {
-      const response = await axios({
+      const response = await api({
         method: 'GET',
         url: pdfLink,
         responseType: 'blob',
         headers: {
           'Accept': 'application/pdf'
         },
-        timeout: 30000 // 30 seconds timeout
+        timeout: 30000
       });
-
-      if (response.status !== 200) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const contentType = response.headers['content-type'];
-      if (!contentType || !contentType.includes('application/pdf')) {
-        console.warn('Warning: Response may not be a PDF. Content-Type:', contentType);
-      }
 
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
@@ -64,17 +53,13 @@ function BookCard({ book }) {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (err) {
-      console.error('Error downloading PDF:', err);
       let errorMessage = 'PDF ডাউনলোড করতে সমস্যা হয়েছে';
       
       if (err.response) {
-        console.error('Server error:', err.response.status);
         errorMessage += ' (Server Error)';
       } else if (err.request) {
-        console.error('Network error:', err.request);
         errorMessage += ' (Network Error)';
       } else {
-        console.error('Request setup error:', err.message);
         errorMessage += ' (Error)';
       }
       
@@ -85,53 +70,73 @@ function BookCard({ book }) {
   };
 
   return (
-    <div className="bg-white shadow-md rounded-lg overflow-hidden">
-      <div className="relative h-48">
-      <img
+    <div className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden flex flex-col h-full transform hover:-translate-y-1">
+      <div className="relative h-56 flex-shrink-0 overflow-hidden">
+        <img
           src={getImageUrl()}
           alt={book.title || 'Book cover'}
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            console.log('Image failed to load:', book.title);
-            setImageError(true);
-          }}
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+          onError={() => setImageError(true)}
         />
         {imageError && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-            <p className="text-gray-500 text-sm">No image available</p>
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-r from-gray-100 to-gray-200">
+            <p className="text-gray-500 text-sm font-medium">No image available</p>
+          </div>
+        )}
+        {book.semester && (
+          <div className="absolute top-3 right-3">
+            <span className="px-3 py-1 bg-gradient-to-r from-teal-500 to-blue-500 text-white text-sm font-medium rounded-full shadow-lg">
+              {book.semester} Semester
+            </span>
           </div>
         )}
       </div>
 
-      <div className="p-4">
-        <h3 className="text-lg font-bold text-gray-800 break-words">{book.title}</h3>
-        <p className="text-sm text-gray-600">By {book.author}</p>
+      <div className="p-6 flex flex-col flex-grow space-y-4">
+        <div>
+          <h3 className="text-xl font-bold text-gray-800 line-clamp-2 mb-2 bg-gradient-to-r from-teal-600 to-blue-600 bg-clip-text text-transparent">
+            {book.title}
+          </h3>
+          <p className="text-sm text-gray-600 font-medium italic">By {book.author || 'Unknown Author'}</p>
+        </div>
+
         {book.description && (
-          <p className="text-sm text-gray-700 mt-2 break-words">{book.description}</p>
-        )}
-        {book.semester && (
-          <p className="text-sm text-teal-600 mt-1">Semester: {book.semester}</p>
-        )}
-        {book.year && (
-          <p className="text-sm text-teal-600">Year: {book.year}</p>
+          <p className="text-sm text-gray-700 break-words line-clamp-3 bg-gray-50 p-3 rounded-lg">
+            {book.description}
+          </p>
         )}
 
-        <div className="mt-3">
+        <div className="flex flex-wrap gap-2 mt-auto">
+          {book.year && (
+            <span className="px-3 py-1 bg-blue-50 text-blue-600 text-sm font-medium rounded-full">
+              Year: {book.year}
+            </span>
+          )}
+        </div>
+
+        <div className="pt-4 border-t border-gray-100">
           <button
             onClick={handleDownload}
             disabled={downloading || (!book.pdf_file && !book.pdf_file_url)}
-            className={`w-full px-4 py-2 rounded font-medium transition-colors ${
+            className={`w-full px-6 py-3 rounded-xl font-medium text-sm transition-all duration-300 transform ${
               downloading || (!book.pdf_file && !book.pdf_file_url)
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-teal-600 hover:bg-teal-700 text-white'
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-gradient-to-r from-teal-500 to-blue-500 hover:from-blue-500 hover:to-purple-500 text-white shadow-lg hover:shadow-xl active:scale-95'
             }`}
           >
-            {downloading ? 'Downloading...' : 'Download Book'}
+            {downloading ? (
+              <div className="flex items-center justify-center space-x-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Downloading...</span>
+              </div>
+            ) : (
+              'Download Book'
+            )}
           </button>
 
           {error && (
-            <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
-              <p className="text-red-600 text-sm">{error}</p>
+            <div className="mt-3 p-3 bg-red-50 border border-red-100 rounded-xl">
+              <p className="text-red-600 text-sm text-center">{error}</p>
             </div>
           )}
         </div>

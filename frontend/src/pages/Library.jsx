@@ -1,57 +1,88 @@
-import axios from 'axios';
+import { api } from '../config/api';
 import { useEffect, useState } from 'react';
 import BookCard from '../components/BookCard';
-import API_URL from '../config/api';
 
 function Library() {
   const [books, setBooks] = useState([]);
   const [filteredBooks, setFilteredBooks] = useState([]);
-  const [years, setYears] = useState([]);
-  const [semesters, setSemesters] = useState(['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th']);
-  const [selectedYear, setSelectedYear] = useState(null);
+  const [semesters] = useState(['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th']);
   const [selectedSemester, setSelectedSemester] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [debugInfo, setDebugInfo] = useState(null);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const booksPerPage = 12;
 
   useEffect(() => {
     const fetchBooks = async () => {
       try {
-        console.log('Fetching books from:', `${API_URL}/api/library/`);
-        const response = await axios.get(`${API_URL}/api/library/`, {
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        });
+        console.log('Starting API call to fetch books...');
         
-        console.log('API Response:', response);
+        console.log('API Configuration:', {
+          baseURL: api.defaults.baseURL,
+          timeout: api.defaults.timeout,
+          headers: api.defaults.headers
+        });
+
+        const response = await api.get('/api/library/');
+        console.log('Raw API Response:', response);
         
         if (response.data) {
+          console.log('Books data received:', response.data);
           setBooks(response.data);
           setFilteredBooks(response.data);
-          const uniqueYears = [...new Set(response.data.map(book => book.year).filter(Boolean))].sort();
-          setYears(uniqueYears);
+          
+          setDebugInfo({
+            timestamp: new Date().toISOString(),
+            dataReceived: true,
+            recordCount: response.data.length,
+            responseHeaders: response.headers,
+            status: response.status
+          });
         } else {
+          console.error('No data in response:', response);
           setError('No data received from server');
+          setDebugInfo({
+            timestamp: new Date().toISOString(),
+            dataReceived: false,
+            response: response
+          });
         }
       } catch (error) {
-        console.error('Error details:', {
-          message: error.message,
-          response: error.response,
-          request: error.request
-        });
+        console.error('Full error object:', error);
+        console.error('Error config:', error.config);
+        console.error('Error request:', error.request);
         
         if (error.response) {
-          // Server responded with error
+          console.error('Server error details:', {
+            status: error.response.status,
+            statusText: error.response.statusText,
+            data: error.response.data,
+            headers: error.response.headers
+          });
           setError(`Server error: ${error.response.status} - ${error.response.statusText}`);
         } else if (error.request) {
-          // Request made but no response
+          console.error('Network error - no response received');
           setError('No response from server. Please check your connection.');
         } else {
-          // Other errors
+          console.error('Error setting up request:', error.message);
           setError(`Error: ${error.message}`);
         }
+        
+        setDebugInfo({
+          timestamp: new Date().toISOString(),
+          error: true,
+          errorType: error.response ? 'ServerError' : error.request ? 'NetworkError' : 'SetupError',
+          errorDetails: {
+            message: error.message,
+            config: error.config,
+            response: error.response,
+            request: error.request
+          }
+        });
       } finally {
         setLoading(false);
       }
@@ -60,25 +91,20 @@ function Library() {
     fetchBooks();
   }, []);
 
-  const handleFilter = (year = selectedYear, semester = selectedSemester) => {
+  const handleFilter = (semester = selectedSemester) => {
     const filtered = books.filter(book => {
       const bookTitle = book.title || '';
       const matchesTitle = bookTitle.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesYear = !year || book.year === year;
       const matchesSemester = !semester || book.semester === semester;
-      return matchesTitle && matchesYear && matchesSemester;
+      return matchesTitle && matchesSemester;
     });
     setFilteredBooks(filtered);
-  };
-
-  const handleFilterByYear = (year) => {
-    setSelectedYear(year);
-    handleFilter(year, selectedSemester);
+    setCurrentPage(1); // Reset to first page when filtering
   };
 
   const handleFilterBySemester = (semester) => {
     setSelectedSemester(semester);
-    handleFilter(selectedYear, semester);
+    handleFilter(semester);
   };
 
   const handleSearch = () => {
@@ -86,10 +112,78 @@ function Library() {
   };
 
   const clearFilters = () => {
-    setSelectedYear(null);
     setSelectedSemester(null);
     setSearchQuery('');
     setFilteredBooks(books);
+    setCurrentPage(1);
+  };
+
+  // Pagination logic
+  const indexOfLastBook = currentPage * booksPerPage;
+  const indexOfFirstBook = indexOfLastBook - booksPerPage;
+  const currentBooks = filteredBooks.slice(indexOfFirstBook, indexOfLastBook);
+  const totalPages = Math.ceil(filteredBooks.length / booksPerPage);
+
+  const paginate = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    return (
+      <div className="flex justify-center space-x-2 mt-8">
+        <button
+          onClick={() => paginate(currentPage - 1)}
+          disabled={currentPage === 1}
+          className={`px-4 py-2 rounded-lg ${
+            currentPage === 1
+              ? 'bg-gray-300 cursor-not-allowed'
+              : 'bg-gradient-to-r from-teal-500 to-blue-500 text-white hover:from-blue-500 hover:to-purple-500'
+          }`}
+        >
+          Previous
+        </button>
+        
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map(number => (
+          <button
+            key={number}
+            onClick={() => paginate(number)}
+            className={`px-4 py-2 rounded-lg ${
+              currentPage === number
+                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                : 'bg-gradient-to-r from-teal-500 to-blue-500 text-white hover:from-blue-500 hover:to-purple-500'
+            }`}
+          >
+            {number}
+          </button>
+        ))}
+        
+        <button
+          onClick={() => paginate(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className={`px-4 py-2 rounded-lg ${
+            currentPage === totalPages
+              ? 'bg-gray-300 cursor-not-allowed'
+              : 'bg-gradient-to-r from-teal-500 to-blue-500 text-white hover:from-blue-500 hover:to-purple-500'
+          }`}
+        >
+          Next
+        </button>
+      </div>
+    );
+  };
+
+  const renderDebugInfo = () => {
+    if (!debugInfo) return null;
+    
+    return (
+      <div className="mt-4 p-4 bg-gray-100 rounded-lg text-xs font-mono">
+        <h4 className="font-bold mb-2">Debug Information:</h4>
+        <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
+      </div>
+    );
   };
 
   if (loading) {
@@ -106,9 +200,10 @@ function Library() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 via-blue-50 to-purple-50">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-teal-50 via-blue-50 to-purple-50">
         <div className="bg-white p-8 rounded-xl shadow-xl">
-          <p className="text-2xl text-red-500 font-semibold">{error}</p>
+          <p className="text-2xl text-red-500 font-semibold mb-4">{error}</p>
+          {renderDebugInfo()}
         </div>
       </div>
     );
@@ -139,7 +234,7 @@ function Library() {
               value={searchQuery}
               onChange={e => {
                 setSearchQuery(e.target.value);
-                if (!e.target.value && !selectedYear && !selectedSemester) {
+                if (!e.target.value && !selectedSemester) {
                   setFilteredBooks(books);
                 }
               }}
@@ -161,36 +256,6 @@ function Library() {
             </div>
           </div>
 
-          {/* Year Filter */}
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-gray-700">Filter by Year:</h3>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => handleFilterByYear(null)}
-                className={`px-6 py-2 rounded-full text-white transition-all duration-300 transform hover:scale-105 ${
-                  selectedYear === null
-                    ? 'bg-gradient-to-r from-teal-600 to-blue-600'
-                    : 'bg-gradient-to-r from-teal-500 to-blue-500 opacity-75 hover:opacity-100'
-                }`}
-              >
-                All Years
-              </button>
-        {years.map(year => (
-          <button
-            key={year}
-            onClick={() => handleFilterByYear(year)}
-                  className={`px-6 py-2 rounded-full text-white transition-all duration-300 transform hover:scale-105 ${
-                    selectedYear === year
-                      ? 'bg-gradient-to-r from-teal-600 to-blue-600'
-                      : 'bg-gradient-to-r from-teal-500 to-blue-500 opacity-75 hover:opacity-100'
-            }`}
-          >
-            {year}
-          </button>
-        ))}
-            </div>
-      </div>
-
           {/* Semester Filter */}
           <div className="space-y-2">
             <h3 className="text-lg font-semibold text-gray-700">Filter by Semester:</h3>
@@ -206,7 +271,7 @@ function Library() {
                 All Semesters
               </button>
               {semesters.map(semester => (
-        <button
+                <button
                   key={semester}
                   onClick={() => handleFilterBySemester(semester)}
                   className={`px-6 py-2 rounded-full text-white transition-all duration-300 transform hover:scale-105 ${
@@ -214,23 +279,18 @@ function Library() {
                       ? 'bg-gradient-to-r from-blue-600 to-purple-600'
                       : 'bg-gradient-to-r from-blue-500 to-purple-500 opacity-75 hover:opacity-100'
                   }`}
-        >
+                >
                   {semester}
-        </button>
+                </button>
               ))}
             </div>
-      </div>
+          </div>
 
           {/* Active Filters */}
-          {(selectedYear || selectedSemester || searchQuery) && (
+          {(selectedSemester || searchQuery) && (
             <div className="p-3 bg-gradient-to-r from-teal-50 to-blue-50 rounded-lg border border-teal-100">
               <p className="text-sm text-gray-600">
                 Active Filters: {' '}
-                {selectedYear && (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full bg-teal-100 text-teal-800 text-sm font-medium mr-2">
-                    Year: {selectedYear}
-                  </span>
-                )}
                 {selectedSemester && (
                   <span className="inline-flex items-center px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-sm font-medium mr-2">
                     Semester: {selectedSemester}
@@ -258,13 +318,16 @@ function Library() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
-        {filteredBooks.map(book => (
-              <div key={book.id} className="transform hover:scale-105 transition-all duration-300 hover:-translate-y-2">
-                <BookCard book={book} />
-              </div>
-        ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+              {currentBooks.map(book => (
+                <div key={book.id} className="transform hover:scale-105 transition-all duration-300 hover:-translate-y-2">
+                  <BookCard book={book} />
+                </div>
+              ))}
+            </div>
+            {renderPagination()}
+          </>
         )}
       </div>
     </div>
