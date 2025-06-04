@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-
-const API_URL = 'http://127.0.0.1:8000';
+import API_URL from '../config/api';
 
 function BookCard({ book }) {
   const [downloading, setDownloading] = useState(false);
@@ -88,7 +87,7 @@ function BookCard({ book }) {
   return (
     <div className="bg-white shadow-md rounded-lg overflow-hidden">
       <div className="relative h-48">
-        <img
+      <img
           src={getImageUrl()}
           alt={book.title || 'Book cover'}
           className="w-full h-full object-cover"

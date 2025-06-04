@@ -2,6 +2,7 @@
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import StudentCard from '../components/StudentCard';
+import API_URL from '../config/api';
 
 function Students() {
   const [students, setStudents] = useState([]);
@@ -12,7 +13,7 @@ function Students() {
   const [searchId, setSearchId] = useState('');
 
   useEffect(() => {
-    axios.get('http://127.0.0.1:8000/api/students/')
+    axios.get(`${API_URL}/api/students/`)
       .then(response => {
         const data = response.data;
         setStudents(data);

@@ -1,6 +1,7 @@
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
+import API_URL from '../config/api';
 
 function TeacherDetail() {
   const { id } = useParams();
@@ -9,7 +10,7 @@ function TeacherDetail() {
   const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
-    axios.get(`http://127.0.0.1:8000/api/teachers/${id}/`)
+    axios.get(`${API_URL}/api/teachers/${id}/`)
       .then(res => {
         setTeacher(res.data);
         setLoading(false);

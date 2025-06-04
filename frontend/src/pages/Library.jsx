@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import BookCard from '../components/BookCard';
+import API_URL from '../config/api';
 
 function Library() {
   const [books, setBooks] = useState([]);
@@ -14,7 +15,7 @@ function Library() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    axios.get('http://127.0.0.1:8000/api/library/')
+    axios.get(`${API_URL}/api/library/`)
       .then(response => {
         const data = response.data;
         setBooks(data);
@@ -146,21 +147,21 @@ function Library() {
               >
                 All Years
               </button>
-              {years.map(year => (
-                <button
-                  key={year}
-                  onClick={() => handleFilterByYear(year)}
+        {years.map(year => (
+          <button
+            key={year}
+            onClick={() => handleFilterByYear(year)}
                   className={`px-6 py-2 rounded-full text-white transition-all duration-300 transform hover:scale-105 ${
                     selectedYear === year
                       ? 'bg-gradient-to-r from-teal-600 to-blue-600'
                       : 'bg-gradient-to-r from-teal-500 to-blue-500 opacity-75 hover:opacity-100'
-                  }`}
-                >
-                  {year}
-                </button>
-              ))}
+            }`}
+          >
+            {year}
+          </button>
+        ))}
             </div>
-          </div>
+      </div>
 
           {/* Semester Filter */}
           <div className="space-y-2">
@@ -177,7 +178,7 @@ function Library() {
                 All Semesters
               </button>
               {semesters.map(semester => (
-                <button
+        <button
                   key={semester}
                   onClick={() => handleFilterBySemester(semester)}
                   className={`px-6 py-2 rounded-full text-white transition-all duration-300 transform hover:scale-105 ${
@@ -185,12 +186,12 @@ function Library() {
                       ? 'bg-gradient-to-r from-blue-600 to-purple-600'
                       : 'bg-gradient-to-r from-blue-500 to-purple-500 opacity-75 hover:opacity-100'
                   }`}
-                >
+        >
                   {semester}
-                </button>
+        </button>
               ))}
             </div>
-          </div>
+      </div>
 
           {/* Active Filters */}
           {(selectedYear || selectedSemester || searchQuery) && (
@@ -230,11 +231,11 @@ function Library() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
-            {filteredBooks.map(book => (
+        {filteredBooks.map(book => (
               <div key={book.id} className="transform hover:scale-105 transition-all duration-300 hover:-translate-y-2">
                 <BookCard book={book} />
               </div>
-            ))}
+        ))}
           </div>
         )}
       </div>

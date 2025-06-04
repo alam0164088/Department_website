@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import TeacherCard from '../components/TeacherCard';
+import API_URL from '../config/api';
 
 function Teachers() {
   const [teachers, setTeachers] = useState([]);
@@ -8,7 +9,7 @@ function Teachers() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    axios.get('http://127.0.0.1:8000/api/teachers/')
+    axios.get(`${API_URL}/api/teachers/`)
       .then(response => {
         setTeachers(response.data);
         setLoading(false);
@@ -74,6 +75,7 @@ function Teachers() {
       </div>
     </div>
   );
+
 }
 
 export default Teachers;
