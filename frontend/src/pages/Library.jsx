@@ -15,21 +15,49 @@ function Library() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    axios.get(`${API_URL}/api/library/`)
-      .then(response => {
-        const data = response.data;
-        setBooks(data);
-        setFilteredBooks(data);
+    const fetchBooks = async () => {
+      try {
+        console.log('Fetching books from:', `${API_URL}/api/library/`);
+        const response = await axios.get(`${API_URL}/api/library/`, {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log('API Response:', response);
+        
+        if (response.data) {
+          setBooks(response.data);
+          setFilteredBooks(response.data);
+          const uniqueYears = [...new Set(response.data.map(book => book.year).filter(Boolean))].sort();
+          setYears(uniqueYears);
+        } else {
+          setError('No data received from server');
+        }
+      } catch (error) {
+        console.error('Error details:', {
+          message: error.message,
+          response: error.response,
+          request: error.request
+        });
+        
+        if (error.response) {
+          // Server responded with error
+          setError(`Server error: ${error.response.status} - ${error.response.statusText}`);
+        } else if (error.request) {
+          // Request made but no response
+          setError('No response from server. Please check your connection.');
+        } else {
+          // Other errors
+          setError(`Error: ${error.message}`);
+        }
+      } finally {
         setLoading(false);
+      }
+    };
 
-        const uniqueYears = [...new Set(data.map(book => book.year).filter(Boolean))].sort();
-        setYears(uniqueYears);
-      })
-      .catch(error => {
-        console.error('Error fetching books:', error);
-        setError('Failed to load books. Please try again.');
-        setLoading(false);
-      });
+    fetchBooks();
   }, []);
 
   const handleFilter = (year = selectedYear, semester = selectedSemester) => {
